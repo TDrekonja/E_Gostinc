@@ -1,0 +1,110 @@
+@model E_Gostinc.Models.Racun
+@{
+    ViewData["Title"] = $"Račun #{Model.ID}";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Račun #@Model.ID</h2>
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Nazaj
+        </a>
+    </div>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">@TempData["Success"]</div>
+    }
+
+    <div class="row">
+        <!-- Informacije o računu -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Informacije</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Datum:</strong><br />@Model.Datum.ToString("dd.MM.yyyy HH:mm:ss")</p>
+                    <p><strong>Uporabnik:</strong><br />@Model.Uporabnik.UserName</p>
+                    <p><strong>Status:</strong><br />
+                        @if (Model.Status == "Zakljucen")
+                        {
+                            <a>Zaključen</a>
+                        }
+                        else if (Model.Status == "Storniran")
+                        {
+                            <a>Storniran</a>
+                        }
+                    </p>
+                    <hr />
+                    <h4><strong>Skupaj:</strong><br />@Model.Skupaj_z_ddv €</h4>
+                </div>
+            </div>
+
+        
+            @if (Model.Status == "Zakljucen" && (User.IsInRole("Admin") || User.IsInRole("Manager")))
+            {
+                <div class="card border-danger">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0">Storniraj račun</h5>
+                    </div>
+                    <div class="card-body">
+                        <form asp-action="Storniraj" method="post">
+                            <input type="hidden" name="id" value="@Model.ID" />
+                            <button type="submit" class="btn btn-danger w-100" onclick="return confirm('Ste prepričani, da želite stornirati ta račun?')">
+                                Storniraj račun
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            }
+        </div>
+
+        
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">Artikli</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Artikel</th>
+                                <th>Vrsta</th>
+                                <th class="text-center">Količina</th>
+                                <th class="text-end">Cena/enoto</th>
+                                <th class="text-end">Skupaj</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var izdelek in Model.IzdelekiGrejoVn)
+                        {
+                            var cenaZDdv = izdelek.Artikel.Cena_brez_ddv * (1 + izdelek.Artikel.Vrsta.Davek / 100);
+                            var skupaj = cenaZDdv * izdelek.Kolicina;
+                            
+                            <tr>
+                                <td>@izdelek.Artikel.Naziv</td>
+                                <td><span class="badge bg-secondary">@izdelek.Artikel.Vrsta.Naziv</span></td>
+                                <td class="text-center">@izdelek.Kolicina</td>
+                                <td class="text-end">@cenaZDdv.ToString("F2") €</td>
+                                <td class="text-end"><strong>@skupaj.ToString("F2") €</strong></td>
+                            </tr>
+                        }
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <td colspan="4" class="text-end"><strong>SKUPAJ:</strong></td>
+                                <td class="text-end"><h5 class="mb-0">@Model.Skupaj_z_ddv.ToString("F2") €</h5></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

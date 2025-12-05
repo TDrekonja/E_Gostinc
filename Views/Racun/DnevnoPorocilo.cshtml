@@ -1,0 +1,195 @@
+@model List<E_Gostinc.Models.Racun>
+@{
+    ViewData["Title"] = "Dnevno poročilo";
+    var izbraniDatum = ViewBag.IzbraniDatum as DateTime?;
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Dnevno poročilo</h2>
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Nazaj na račune
+        </a>
+    </div>
+
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Datum:</label>
+                    <input type="date" 
+                           name="datum" 
+                           class="form-control" 
+                           value="@(izbraniDatum?.ToString("yyyy-MM-dd") ?? DateTime.Today.ToString("yyyy-MM-dd"))" />
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        Prikaži
+                    </button>
+                </div>
+                <div class="col-md-6 text-end">
+                    <h5 class="mb-0">@(izbraniDatum?.ToString("dddd, dd. MMMM yyyy") ?? DateTime.Today.ToString("dddd, dd. MMMM yyyy"))</h5>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Statistika -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-white bg-primary">
+                <div class="card-body text-center">
+                    <h6 class="card-title">Število računov</h6>
+                    <h2>@ViewBag.SkupajRacunov</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-success">
+                <div class="card-body text-center">
+                    <h6 class="card-title">Skupna vrednost</h6>
+                    <h2>@ViewBag.SkupajVrednost €</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prodaja po vrstah -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Prodaja po vrstah</h5>
+                </div>
+                <div class="card-body">
+                    @if (ViewBag.PoVrstah != null && ((IEnumerable<dynamic>)ViewBag.PoVrstah).Any())
+                    {
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Vrsta</th>
+                                    <th class="text-center">Količina</th>
+                                    <th class="text-end">Vrednost</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var item in ViewBag.PoVrstah)
+                            {
+                                <tr>
+                                    <td><strong>@item.Vrsta</strong></td>
+                                    <td class="text-center">@item.Kolicina</td>
+                                    <td class="text-end">@item.Vrednost.ToString("F2") €</td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p class="text-muted text-center my-3">Ni podatkov</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+       
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Top 10 artiklov</h5>
+                </div>
+                <div class="card-body">
+                    @if (ViewBag.NajArtikli != null && ((IEnumerable<dynamic>)ViewBag.NajArtikli).Any())
+                    {
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Št.</th>
+                                    <th>Artikel</th>
+                                    <th class="text-end">Količina</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            @{
+                                int i = 1;
+                            }
+                            @foreach (var item in ViewBag.NajArtikli)
+                            {
+                                <tr>
+                                    <td><strong>@i.</strong></td>
+                                    <td>@item.Artikel</td>
+                                    <td class="text-end">
+                                        <span>@item.Kolicina</span>
+                                    </td>
+                                </tr>
+                                i++;
+                            }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p class="text-muted text-center my-3">Ni podatkov</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="card">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0">Vsi računi za ta dan</h5>
+        </div>
+        <div class="card-body">
+            @if (Model.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Ura</th>
+                                <th>Uporabnik</th>
+                                <th class="text-end">Vrednost</th>
+                                <th class="text-center">Akcije</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var racun in Model)
+                        {
+                            <tr>
+                                <td><strong>#@racun.ID</strong></td>
+                                <td>@racun.Datum.ToString("HH:mm:ss")</td>
+                                <td>@racun.Uporabnik.UserName</td>
+                                <td class="text-end">@racun.Skupaj_z_ddv.ToString("F2") €</td>
+                                <td class="text-center">
+                                    <a asp-action="Podrobnosti" asp-route-id="@racun.ID" class="btn btn-sm btn-info">
+                                        Podrobnosti
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <td colspan="3" class="text-end"><strong>SKUPAJ:</strong></td>
+                                <td class="text-end"><strong>@Model.Sum(r => r.Skupaj_z_ddv).ToString("F2") €</strong></td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info mb-0">
+                     Za ta dan ni bilo izdanih računov.
+                </div>
+            }
+        </div>
+    </div>
+
+</div>
+

@@ -1,0 +1,139 @@
+@model List<E_Gostinc.Models.Racun>
+@{
+    ViewData["Title"] = "Seznam računov";
+}
+
+<div class="container-fluid mt-4">
+    <h2 class="mb-4">Seznam računov</h2>
+
+    <!-- Filtri -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Od datuma:</label>
+                    <input type="date" name="odDatum" class="form-control" value="@ViewBag.OdDatum?.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Do datuma:</label>
+                    <input type="date" name="doDatum" class="form-control" value="@ViewBag.DoDatum?.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Status:</label>
+                    <select name="status" class="form-select">
+                        <option value="">Vsi</option>
+                        @if (ViewBag.Status == "Zakljucen")
+                        {
+                            <option value="Zakljucen" selected>Zaključen</option>
+                        }
+                        else
+                        {
+                            <option value="Zakljucen">Zaključen</option>
+                        }
+                        
+                        @if (ViewBag.Status == "Storniran")
+                        {
+                            <option value="Storniran" selected>Storniran</option>
+                        }
+                        else
+                        {
+                            <option value="Storniran">Storniran</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end gap-2">
+                    <button type="submit" class="btn btn-primary flex-grow-1">
+                        <i class="bi bi-search"></i> Filtriraj
+                    </button>
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="bi bi-x-circle"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Statistika -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <h6 class="card-title">Število računov</h6>
+                    <h3>@ViewBag.SkupajRacunov</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <h6 class="card-title">Skupna vrednost</h6>
+                    <h3>@ViewBag.SkupajVrednost €</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ID</th>
+                            <th>Datum</th>
+                            <th>Uporabnik</th>
+                            <th class="text-end">Vrednost</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-center">Akcije</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var racun in Model)
+                    {
+                        <tr>
+                            <td><strong>#@racun.ID</strong></td>
+                            <td>@racun.Datum.ToString("dd.MM.yyyy HH:mm")</td>
+                            <td>@racun.Uporabnik.UserName</td>
+                            <td class="text-end"><strong>@racun.Skupaj_z_ddv €</strong></td>
+                            <td class="text-center">
+                                @if (racun.Status == "Zakljucen")
+                                {
+                                    <span >Zaključen</span>
+                                }
+                                else if (racun.Status == "Storniran")
+                                {
+                                    <span >Storniran</span>
+                                }
+                                else
+                                {
+                                    <span >@racun.Status</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <a asp-action="Podrobnosti" asp-route-id="@racun.ID" class="btn btn-sm btn-info">
+                                     Podrobnosti
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            
+            @if (!Model.Any())
+            {
+                <div class="alert alert-info mb-0">
+                    <i class="bi bi-info-circle"></i> Ni računov za prikaz.
+                </div>
+            }
+        </div>
+    </div>
+
+        <div class="mt-3">
+            <a asp-action="DnevnoPorocilo" class="btn btn-outline-primary">
+                Dnevno poročilo
+            </a>
+        </div>
+    
+</div>

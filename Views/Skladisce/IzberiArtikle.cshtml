@@ -1,0 +1,215 @@
+@model E_Gostinc.Models.PrenosMedSkladisciViewModel
+@{
+    ViewData["Title"] = "Izberi artikle za prenos";
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <strong>Napaka!</strong> @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <strong>Uspeh!</strong> @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="container-fluid mt-4">
+    <h2 class="mb-4">Prenos iz skladišča: <span class="text-primary">@Model.IzSkladiscaNaziv</span></h2>
+    
+    <form asp-action="IzvrsiPrenos" method="post" id="prenosForm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="izSkladiscaId" value="@Model.IzSkladiscaId" />
+        
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Korak 2: Izberite ciljno skladišče</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label">V skladišče:</label>
+                        <select name="vSkladisceId" id="vSkladisceId" class="form-select" required>
+                            <option value="">-- Izberite ciljno skladišče --</option>
+                            @foreach (var skladisce in Model.Skladisca)
+                            {
+                                <option value="@skladisce.ID">@skladisce.Naziv</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Korak 3: Izberite artikle in količine</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th style="width: 50px;">
+                                    <input type="checkbox" id="selectAll" class="form-check-input">
+                                </th>
+                                <th>Artikel</th>
+                                <th>Vrsta</th>
+                                <th>Enota</th>
+                                <th class="text-end">Trenutna zaloga</th>
+                                <th style="width: 150px;">Količina prenosa</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @for (int i = 0; i < Model.Zaloge.Count; i++)
+                        {
+                            var zaloga = Model.Zaloge[i];
+                            <tr class="artikel-row">
+                                <td>
+                                    <input type="checkbox" 
+                                        class="form-check-input artikel-checkbox" 
+                                        id="checkbox_@i"
+                                        data-index="@i">
+                                </td>
+                                <td>@zaloga.Naziv</td>
+                                <td><span class="badge bg-secondary">@zaloga.Vrsta</span></td>
+                                <td>@zaloga.Enota</td>
+                                <td class="text-end"><strong>@zaloga.TrenutnaZaloga</strong></td>
+                                <td>
+                                    <input type="number" 
+                                        name="kolicine" 
+                                        id="kolicina_@i"
+                                        class="form-control kolicina-input" 
+                                        min="1" 
+                                        max="@zaloga.TrenutnaZaloga"
+                                        value="0"
+                                        disabled
+                                        data-max="@zaloga.TrenutnaZaloga"
+                                        data-artikel-id="@zaloga.DobavniArtikelId">
+                                    
+                                    
+                                    <input type="hidden" 
+                                        name="izbraniArtikli" 
+                                        id="artikel_@i"
+                                        value="@zaloga.DobavniArtikelId"
+                                        disabled>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+                
+                @if (!Model.Zaloge.Any())
+                {
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i> 
+                        V tem skladišču ni nobenih artiklov z zalogo.
+                    </div>
+                }
+            </div>
+        </div>
+        
+
+        <div class="mt-4 d-flex justify-content-between">
+            <a asp-action="PrenosMedSkladisci" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Nazaj
+            </a>
+            <button type="submit" class="btn btn-success btn-lg" id="submitBtn" disabled>
+                <i class="bi bi-check-circle"></i> Izvedi prenos
+            </button>
+        </div>
+</form>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('selectAll').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.artikel-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = this.checked;
+                toggleKolicinaInput(cb, cb.dataset.index);
+            });
+        });
+        
+
+        function toggleKolicinaInput(checkbox, index) {
+            const kolicinaInput = document.getElementById('kolicina_' + index);
+            const artikelHidden = document.getElementById('artikel_' + index);
+            
+            if (checkbox.checked) {
+                kolicinaInput.disabled = false;
+                artikelHidden.disabled = false;
+                if (kolicinaInput.value == 0) {
+                    kolicinaInput.value = kolicinaInput.dataset.max;
+                }
+                kolicinaInput.focus();
+            } else {
+                kolicinaInput.disabled = true;
+                artikelHidden.disabled = true;
+                kolicinaInput.value = 0;
+            }
+            
+            updateSubmitButton();
+        }
+        
+
+        document.querySelectorAll('.artikel-checkbox').forEach(cb => {
+            cb.addEventListener('change', function() {
+                toggleKolicinaInput(this, this.dataset.index);
+            });
+        });
+        
+
+        function updateSubmitButton() {
+            const anyChecked = document.querySelectorAll('.artikel-checkbox:checked').length > 0;
+            const vSkladisceSelected = document.getElementById('vSkladisceId').value !== '';
+            document.getElementById('submitBtn').disabled = !(anyChecked && vSkladisceSelected);
+        }
+        
+
+        document.getElementById('vSkladisceId').addEventListener('change', updateSubmitButton);
+        
+
+        document.getElementById('prenosForm').addEventListener('submit', function(e) {
+            const vSkladisce = document.getElementById('vSkladisceId').value;
+            
+            if (!vSkladisce) {
+                alert('Prosim izberi ciljno skladišče!');
+                e.preventDefault();
+                return false;
+            }
+            
+            const checkedBoxes = document.querySelectorAll('.artikel-checkbox:checked');
+            
+            if (checkedBoxes.length === 0) {
+                alert('Prosim izberi vsaj en artikel!');
+                e.preventDefault();
+                return false;
+            }
+            
+            let valid = true;
+            checkedBoxes.forEach(cb => {
+                const index = cb.dataset.index;
+                const kolicinaInput = document.getElementById('kolicina_' + index);
+                const kolicina = parseInt(kolicinaInput.value);
+                const max = parseInt(kolicinaInput.dataset.max);
+                
+                if (kolicina <= 0 || kolicina > max) {
+                    alert(`Napačna količina za artikel v vrstici ${parseInt(index) + 1}. Vnesi vrednost med 1 in ${max}.`);
+                    valid = false;
+                    kolicinaInput.focus();
+                    return false;
+                }
+            });
+            
+            if (!valid) {
+                e.preventDefault();
+                return false;
+            }
+            
+            return true;
+        });
+    </script>
+}

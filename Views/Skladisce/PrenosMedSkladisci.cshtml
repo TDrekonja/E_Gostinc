@@ -1,0 +1,39 @@
+@{
+    ViewData["Title"] = "Prenos med skladišči";
+}
+
+<div class="container mt-4">
+    <h2 class="mb-4">Prenos med skladišči</h2>
+    
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Korak 1: Izberite izvorno skladišče</h5>
+            
+            <form asp-action="IzberiArtikle" method="get">
+                <div class="row">
+                    <div class="col-md-8">
+                        <label class="form-label">Iz skladišča:</label>
+                        <select name="izSkladiscaId" class="form-select" required>
+                            <option value="">-- Izberite skladišče --</option>
+                            @foreach (var skladisce in ViewBag.Skladisca)
+                            {
+                                <option value="@skladisce.ID">@skladisce.Naziv</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            Naprej <i class="bi bi-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="mt-3">
+        <a asp-action="ZgodovinaPrenosov" class="btn btn-outline-secondary">
+            <i class="bi bi-clock-history"></i> Zgodovina prenosov
+        </a>
+    </div>
+</div>
