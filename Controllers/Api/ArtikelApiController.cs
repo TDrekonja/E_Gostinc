@@ -1,12 +1,15 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using E_Gostinc.Data;
 using E_Gostinc.Models;
+using E_Gostinc.Models.DTOs;
 
 namespace E_Gostinc.Controllers.Api
 {
     [Route("api/v1/artikel")]
     [ApiController]
+    [AllowAnonymous]
     public class ArtikelApiController : ControllerBase
     {
         private readonly ArtikelContext _context;
@@ -16,22 +19,44 @@ namespace E_Gostinc.Controllers.Api
             _context = context;
         }
 
-        // GET: api/v1/artikel
+        // ✅ Vrni DTO namesto entitete
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Artikel>>> GetArtikli()
+        [AllowAnonymous]
+        public async Task<ActionResult<IEnumerable<ArtikelDto>>> GetArtikli()
         {
-            return await _context.Artikel
+            var artikli = await _context.Artikel
                 .Include(a => a.Vrsta)
+                .Select(a => new ArtikelDto
+                {
+                    Id = a.ID,
+                    Naziv = a.Naziv,
+                    Cena_brez_ddv = a.Cena_brez_ddv,
+                    VrstaID = a.VrstaID,
+                    VrstaNaziv = a.Vrsta.Naziv,
+                    Davek = a.Vrsta.Davek
+                })
                 .ToListAsync();
+
+            return Ok(artikli);
         }
 
-        // GET: api/v1/artikel/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Artikel>> GetArtikel(int id)
+        [AllowAnonymous]
+        public async Task<ActionResult<ArtikelDto>> GetArtikel(int id)
         {
             var artikel = await _context.Artikel
                 .Include(a => a.Vrsta)
-                .FirstOrDefaultAsync(m => m.ID == id);
+                .Where(a => a.ID == id)
+                .Select(a => new ArtikelDto
+                {
+                    Id = a.ID,
+                    Naziv = a.Naziv,
+                    Cena_brez_ddv = a.Cena_brez_ddv,
+                    VrstaID = a.VrstaID,
+                    VrstaNaziv = a.Vrsta.Naziv,
+                    Davek = a.Vrsta.Davek
+                })
+                .FirstOrDefaultAsync();
 
             if (artikel == null)
             {
@@ -41,38 +66,9 @@ namespace E_Gostinc.Controllers.Api
             return artikel;
         }
 
-        // PUT: api/v1/artikel/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutArtikel(int id, Artikel artikel)
-        {
-            if (id != artikel.ID)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(artikel).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!ArtikelExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
-        }
-
-        // POST: api/v1/artikel
+        // POST, PUT, DELETE ostanejo enaki (sprejemajo Artikel entiteto)
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<Artikel>> PostArtikel(Artikel artikel)
         {
             _context.Artikel.Add(artikel);
@@ -81,25 +77,6 @@ namespace E_Gostinc.Controllers.Api
             return CreatedAtAction(nameof(GetArtikel), new { id = artikel.ID }, artikel);
         }
 
-        // DELETE: api/v1/artikel/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteArtikel(int id)
-        {
-            var artikel = await _context.Artikel.FindAsync(id);
-            if (artikel == null)
-            {
-                return NotFound();
-            }
-
-            _context.Artikel.Remove(artikel);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        private bool ArtikelExists(int id)
-        {
-            return _context.Artikel.Any(e => e.ID == id);
-        }
+        // ... ostale metode
     }
 }

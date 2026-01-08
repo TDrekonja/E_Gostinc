@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using E_Gostinc.Data;
 using E_Gostinc.Models;
+using E_Gostinc.Models.DTOs;
+using Microsoft.AspNetCore.Authorization;
 
 namespace E_Gostinc.Controllers.Api
 {
@@ -16,17 +18,26 @@ namespace E_Gostinc.Controllers.Api
             _context = context;
         }
 
-        // GET: api/v1/racun
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Racun>>> GetRacuni()
-        {
-            return await _context.Racun
-                .Include(r => r.Uporabnik)
-                .Include(r => r.IzdelekiGrejoVn)
-                    .ThenInclude(i => i.Artikel)
-                .OrderByDescending(r => r.Datum)
-                .ToListAsync();
-        }
+    [AllowAnonymous]
+    public async Task<ActionResult<IEnumerable<RacunDto>>> GetRacuni()
+    {
+        var racuni = await _context.Racun
+            .Include(r => r.Uporabnik)
+            .OrderByDescending(r => r.Datum)
+            .Select(r => new RacunDto
+            {
+                ID = r.ID,
+                Datum = r.Datum,
+                Skupaj_brez_ddv = r.Skupaj_brez_ddv,
+                Skupaj_z_ddv = r.Skupaj_z_ddv,
+                Status = r.Status,
+                Uporabnik = r.Uporabnik
+            })
+            .ToListAsync();
+
+        return Ok(racuni);
+    }
 
         // GET: api/v1/racun/5
         [HttpGet("{id}")]
