@@ -50,16 +50,13 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
-else
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    // ✅ Swagger samo v Development
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "E-Gostinc API V1");
-        c.RoutePrefix = "swagger"; // URL: https://localhost:5001/swagger
-    });
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "E-Gostinc API V1");
+    c.RoutePrefix = "swagger";
+});
+
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
