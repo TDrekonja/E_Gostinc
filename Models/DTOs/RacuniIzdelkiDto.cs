@@ -8,10 +8,11 @@ namespace E_Gostinc.Models.DTOs
         public int Kolicina { get; set; }
         public decimal Skupaj { get; set; }
     }
-    
+
     public class UstvariRacunZahtevo
     {
         public List<int> ArtikelIdi { get; set; }
+        public string UserId { get; set; }
     }
     
     public class RacunOdgovorDto

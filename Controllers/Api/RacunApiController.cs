@@ -83,14 +83,18 @@ namespace E_Gostinc.Controllers.Api
             return Ok(response);
         }
 
-        // POST: api/v1/racun
+
         [HttpPost]
-        [AllowAnonymous]  // ✅ POMEMBNO - dovoli brez avtentikacije
+        [AllowAnonymous] 
         public async Task<ActionResult<RacunOdgovorDto>> CreateRacun(UstvariRacunZahtevo request)
         {
             if (request.ArtikelIdi == null || !request.ArtikelIdi.Any())
             {
                 return BadRequest(new { error = "Račun mora vsebovati vsaj en artikel" });
+            }
+            if (string.IsNullOrEmpty(request.UserId))
+            {
+                return BadRequest(new { error = "Uporabnik ni prijavljen" });
             }
 
             try
@@ -101,11 +105,10 @@ namespace E_Gostinc.Controllers.Api
                     return BadRequest(new { error = "Bar skladišče ne obstaja" });
                 }
 
-                // Get default admin user (for API calls without auth)
-                var adminUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == "admin@egostinc.si");
-                if (adminUser == null)
+                var uporabnik = await _context.Users.FindAsync(request.UserId);
+                if (uporabnik == null)
                 {
-                    return BadRequest(new { error = "Admin uporabnik ne obstaja" });
+                    return BadRequest(new { error = "Uporabnik ne obstaja" });
                 }
 
                 var artikli = await _context.Artikel
@@ -146,7 +149,7 @@ namespace E_Gostinc.Controllers.Api
                     Datum = DateTime.Now,
                     Skupaj_brez_ddv = skupajBrezDdv,
                     Skupaj_z_ddv = skupajZDdv,
-                    Izdal_uporabnik_id = adminUser.Id,
+                    Izdal_uporabnik_id = uporabnik.Id,
                     Status = "Zakljucen"
                 };
 

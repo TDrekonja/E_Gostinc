@@ -68,7 +68,6 @@ namespace E_Gostinc.Controllers.Api
 
         // POST, PUT, DELETE ostanejo enaki (sprejemajo Artikel entiteto)
         [HttpPost]
-        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<Artikel>> PostArtikel(Artikel artikel)
         {
             _context.Artikel.Add(artikel);

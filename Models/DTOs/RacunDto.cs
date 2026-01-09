@@ -9,4 +9,5 @@ namespace E_Gostinc.Models.DTOs
         public string Status { get; set; }
         public string UporabnikEmail { get; set; }
     }
+
 }
