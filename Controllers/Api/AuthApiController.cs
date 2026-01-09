@@ -23,12 +23,13 @@ namespace E_Gostinc.Controllers.Api
         [HttpPost("login")]
         public async Task<ActionResult> Login([FromBody] LoginRequest request)
         {
-            if (string.IsNullOrEmpty(request.Email) || string.IsNullOrEmpty(request.Password))
+            if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
             {
-                return BadRequest(new { error = "Email in geslo sta obvezna" });
+                return BadRequest(new { error = "Uporabniško ime in geslo sta obvezna" });
             }
 
-            var user = await _userManager.FindByEmailAsync(request.Email);
+            // ✅ Najdi uporabnika po USERNAME
+            var user = await _userManager.FindByNameAsync(request.Username);
             if (user == null)
             {
                 return Unauthorized(new { error = "Napačno uporabniško ime ali geslo" });
@@ -47,7 +48,8 @@ namespace E_Gostinc.Controllers.Api
             return Ok(new
             {
                 id = user.Id,
-                email = user.Email,
+                username = user.UserName,
+                email = user.Email ?? user.UserName, 
                 delovno_mesto = user.Delovno_mesto,
                 role = role,
                 message = "Prijava uspešna"
@@ -73,7 +75,7 @@ namespace E_Gostinc.Controllers.Api
                     return Ok(new
                     {
                         authenticated = true,
-                        email = user.Email,
+                        username = user.UserName,
                         role = roles.FirstOrDefault()
                     });
                 }
@@ -84,7 +86,7 @@ namespace E_Gostinc.Controllers.Api
 
     public class LoginRequest
     {
-        public string Email { get; set; }
+        public string Username { get; set; }
         public string Password { get; set; }
     }
 }
