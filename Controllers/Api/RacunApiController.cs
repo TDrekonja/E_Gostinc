@@ -1,9 +1,10 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using E_Gostinc.Data;
 using E_Gostinc.Models;
 using E_Gostinc.Models.DTOs;
-using Microsoft.AspNetCore.Authorization;
 
 namespace E_Gostinc.Controllers.Api
 {
@@ -18,33 +19,37 @@ namespace E_Gostinc.Controllers.Api
             _context = context;
         }
 
-        [HttpGet]
-    [AllowAnonymous]
-    public async Task<ActionResult<IEnumerable<RacunDto>>> GetRacuni()
-    {
-        var racuni = await _context.Racun
-            .Include(r => r.Uporabnik)
-            .OrderByDescending(r => r.Datum)
-            .Select(r => new RacunDto
-            {
-                ID = r.ID,
-                Datum = r.Datum,
-                Skupaj_brez_ddv = r.Skupaj_brez_ddv,
-                Skupaj_z_ddv = r.Skupaj_z_ddv,
-                Status = r.Status,
-                Uporabnik = r.Uporabnik
-            })
-            .ToListAsync();
+        // GET: api/v1/racun/dnevni
+        [HttpGet("dnevni")]
+        [AllowAnonymous]
+        public async Task<ActionResult<IEnumerable<RacunDto>>> GetDnevniRacuni()
+        {
+            var danes = DateTime.Today;
+            
+            var racuni = await _context.Racun
+                .Include(r => r.Uporabnik)
+                .Where(r => r.Datum.Date == danes && r.Status == "Zakljucen")
+                .OrderByDescending(r => r.Datum)
+                .Select(r => new RacunDto
+                {
+                    Id = r.ID,
+                    Datum = r.Datum,
+                    Skupaj_brez_ddv = r.Skupaj_brez_ddv,
+                    Skupaj_z_ddv = r.Skupaj_z_ddv,
+                    Status = r.Status,
+                    UporabnikEmail = r.Uporabnik.Email ?? "N/A"
+                })
+                .ToListAsync();
 
-        return Ok(racuni);
-    }
+            return Ok(racuni);
+        }
 
-        // GET: api/v1/racun/5
+        // GET: api/v1/racun/{id}
         [HttpGet("{id}")]
-        public async Task<ActionResult<Racun>> GetRacun(int id)
+        [AllowAnonymous]
+        public async Task<ActionResult<RacunOdgovorDto>> GetRacun(int id)
         {
             var racun = await _context.Racun
-                .Include(r => r.Uporabnik)
                 .Include(r => r.IzdelekiGrejoVn)
                     .ThenInclude(i => i.Artikel)
                         .ThenInclude(a => a.Vrsta)
@@ -55,61 +60,123 @@ namespace E_Gostinc.Controllers.Api
                 return NotFound();
             }
 
-            return racun;
-        }
-
-        // GET: api/v1/racun/dnevno
-        [HttpGet("dnevno")]
-        public async Task<ActionResult<object>> GetDnevnoPorocilo([FromQuery] DateTime? datum)
-        {
-            var izbraniDatum = datum ?? DateTime.Today;
-
-            var racuni = await _context.Racun
-                .Where(r => r.Datum.Date == izbraniDatum.Date && r.Status == "Zakljucen")
-                .Include(r => r.IzdelekiGrejoVn)
-                    .ThenInclude(i => i.Artikel)
-                .ToListAsync();
-
-            var statistika = new
+            var response = new RacunOdgovorDto
             {
-                Datum = izbraniDatum,
-                SkupajRacunov = racuni.Count,
-                SkupajVrednost = racuni.Sum(r => r.Skupaj_z_ddv),
-                PovprecnaVrednost = racuni.Any() ? racuni.Average(r => r.Skupaj_z_ddv) : 0
+                Id = racun.ID,
+                Datum = racun.Datum,
+                SkupajBrezDdv = racun.Skupaj_brez_ddv,
+                SkupajZDdv = racun.Skupaj_z_ddv,
+                Status = racun.Status,
+                Artikli = racun.IzdelekiGrejoVn
+                    .GroupBy(i => new { i.Artikel_id, i.Artikel.Naziv, i.Artikel.Cena_brez_ddv })
+                    .Select(g => new RacuniIzdelkiDto
+                    {
+                        ArtikelId = g.Key.Artikel_id,
+                        Naziv = g.Key.Naziv,
+                        CenaBrezDdv = g.Key.Cena_brez_ddv,
+                        Kolicina = g.Sum(x => x.Kolicina),
+                        Skupaj = g.Key.Cena_brez_ddv * g.Sum(x => x.Kolicina)
+                    })
+                    .ToList()
             };
 
-            return Ok(statistika);
+            return Ok(response);
         }
 
         // POST: api/v1/racun
         [HttpPost]
-        public async Task<ActionResult<Racun>> PostRacun(Racun racun)
+        [AllowAnonymous]
+        public async Task<ActionResult<RacunOdgovorDto>> CreateRacun(UstvariRacunZahtevo request)
         {
-            _context.Racun.Add(racun);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetRacun), new { id = racun.ID }, racun);
-        }
-
-        // DELETE: api/v1/racun/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteRacun(int id)
-        {
-            var racun = await _context.Racun.FindAsync(id);
-            if (racun == null)
+            if (request.ArtikelIdi == null || !request.ArtikelIdi.Any())
             {
-                return NotFound();
+                return BadRequest("Račun mora vsebovati vsaj en artikel");
             }
 
-            _context.Racun.Remove(racun);
+            var barSkladisce = await _context.Skladisce.FirstOrDefaultAsync(s => s.Naziv == "Bar");
+            if (barSkladisce == null)
+            {
+                return BadRequest("Bar skladišče ne obstaja");
+            }
+
+            // Get default admin user (for API calls without auth)
+            var adminUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == "admin@egostinc.si");
+            if (adminUser == null)
+            {
+                return BadRequest("Admin uporabnik ne obstaja");
+            }
+
+            var artikli = await _context.Artikel
+                .Include(a => a.Vrsta)
+                .Where(a => request.ArtikelIdi.Contains(a.ID))
+                .ToListAsync();
+
+            var artikliGrouped = request.ArtikelIdi
+                .GroupBy(id => id)
+                .Select(g => new
+                {
+                    ArtikelId = g.Key,
+                    Kolicina = g.Count(),
+                    Artikel = artikli.First(a => a.ID == g.Key)
+                })
+                .ToList();
+
+            decimal skupajBrezDdv = 0;
+            decimal skupajZDdv = 0;
+
+            foreach (var item in artikliGrouped)
+            {
+                var cenaBrezDdv = item.Artikel.Cena_brez_ddv * item.Kolicina;
+                var cenaZDdv = cenaBrezDdv * (1 + item.Artikel.Vrsta.Davek / 100);
+
+                skupajBrezDdv += cenaBrezDdv;
+                skupajZDdv += cenaZDdv;
+            }
+
+            var novRacun = new Racun
+            {
+                Datum = DateTime.Now,
+                Skupaj_brez_ddv = skupajBrezDdv,
+                Skupaj_z_ddv = skupajZDdv,
+                Izdal_uporabnik_id = adminUser.Id,
+                Status = "Zakljucen"
+            };
+
+            _context.Racun.Add(novRacun);
             await _context.SaveChangesAsync();
 
-            return NoContent();
-        }
+            foreach (var item in artikliGrouped)
+            {
+                var izdelekGreVn = new IzdelekGreVn
+                {
+                    Racun_id = novRacun.ID,
+                    Artikel_id = item.ArtikelId,
+                    Skladisce_id = barSkladisce.ID,
+                    Kolicina = item.Kolicina
+                };
+                _context.IzdelekGreVn.Add(izdelekGreVn);
+            }
 
-        private bool RacunExists(int id)
-        {
-            return _context.Racun.Any(e => e.ID == id);
+            await _context.SaveChangesAsync();
+
+            var response = new RacunOdgovorDto
+            {
+                Id = novRacun.ID,
+                Datum = novRacun.Datum,
+                SkupajBrezDdv = novRacun.Skupaj_brez_ddv,
+                SkupajZDdv = novRacun.Skupaj_z_ddv,
+                Status = novRacun.Status,
+                Artikli = artikliGrouped.Select(item => new RacuniIzdelkiDto
+                {
+                    ArtikelId = item.ArtikelId,
+                    Naziv = item.Artikel.Naziv,
+                    CenaBrezDdv = item.Artikel.Cena_brez_ddv,
+                    Kolicina = item.Kolicina,
+                    Skupaj = item.Artikel.Cena_brez_ddv * item.Kolicina
+                }).ToList()
+            };
+
+            return CreatedAtAction(nameof(GetRacun), new { id = novRacun.ID }, response);
         }
     }
 }
