@@ -85,98 +85,111 @@ namespace E_Gostinc.Controllers.Api
 
         // POST: api/v1/racun
         [HttpPost]
-        [AllowAnonymous]
+        [AllowAnonymous]  // ✅ POMEMBNO - dovoli brez avtentikacije
         public async Task<ActionResult<RacunOdgovorDto>> CreateRacun(UstvariRacunZahtevo request)
         {
             if (request.ArtikelIdi == null || !request.ArtikelIdi.Any())
             {
-                return BadRequest("Račun mora vsebovati vsaj en artikel");
+                return BadRequest(new { error = "Račun mora vsebovati vsaj en artikel" });
             }
 
-            var barSkladisce = await _context.Skladisce.FirstOrDefaultAsync(s => s.Naziv == "Bar");
-            if (barSkladisce == null)
+            try
             {
-                return BadRequest("Bar skladišče ne obstaja");
-            }
-
-            // Get default admin user (for API calls without auth)
-            var adminUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == "admin@egostinc.si");
-            if (adminUser == null)
-            {
-                return BadRequest("Admin uporabnik ne obstaja");
-            }
-
-            var artikli = await _context.Artikel
-                .Include(a => a.Vrsta)
-                .Where(a => request.ArtikelIdi.Contains(a.ID))
-                .ToListAsync();
-
-            var artikliGrouped = request.ArtikelIdi
-                .GroupBy(id => id)
-                .Select(g => new
+                var barSkladisce = await _context.Skladisce.FirstOrDefaultAsync(s => s.Naziv == "Bar");
+                if (barSkladisce == null)
                 {
-                    ArtikelId = g.Key,
-                    Kolicina = g.Count(),
-                    Artikel = artikli.First(a => a.ID == g.Key)
-                })
-                .ToList();
+                    return BadRequest(new { error = "Bar skladišče ne obstaja" });
+                }
 
-            decimal skupajBrezDdv = 0;
-            decimal skupajZDdv = 0;
-
-            foreach (var item in artikliGrouped)
-            {
-                var cenaBrezDdv = item.Artikel.Cena_brez_ddv * item.Kolicina;
-                var cenaZDdv = cenaBrezDdv * (1 + item.Artikel.Vrsta.Davek / 100);
-
-                skupajBrezDdv += cenaBrezDdv;
-                skupajZDdv += cenaZDdv;
-            }
-
-            var novRacun = new Racun
-            {
-                Datum = DateTime.Now,
-                Skupaj_brez_ddv = skupajBrezDdv,
-                Skupaj_z_ddv = skupajZDdv,
-                Izdal_uporabnik_id = adminUser.Id,
-                Status = "Zakljucen"
-            };
-
-            _context.Racun.Add(novRacun);
-            await _context.SaveChangesAsync();
-
-            foreach (var item in artikliGrouped)
-            {
-                var izdelekGreVn = new IzdelekGreVn
+                // Get default admin user (for API calls without auth)
+                var adminUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == "admin@egostinc.si");
+                if (adminUser == null)
                 {
-                    Racun_id = novRacun.ID,
-                    Artikel_id = item.ArtikelId,
-                    Skladisce_id = barSkladisce.ID,
-                    Kolicina = item.Kolicina
+                    return BadRequest(new { error = "Admin uporabnik ne obstaja" });
+                }
+
+                var artikli = await _context.Artikel
+                    .Include(a => a.Vrsta)
+                    .Where(a => request.ArtikelIdi.Contains(a.ID))
+                    .ToListAsync();
+
+                if (!artikli.Any())
+                {
+                    return BadRequest(new { error = "Artikli ne obstajajo" });
+                }
+
+                var artikliGrouped = request.ArtikelIdi
+                    .GroupBy(id => id)
+                    .Select(g => new
+                    {
+                        ArtikelId = g.Key,
+                        Kolicina = g.Count(),
+                        Artikel = artikli.FirstOrDefault(a => a.ID == g.Key)
+                    })
+                    .Where(x => x.Artikel != null)
+                    .ToList();
+
+                decimal skupajBrezDdv = 0;
+                decimal skupajZDdv = 0;
+
+                foreach (var item in artikliGrouped)
+                {
+                    var cenaBrezDdv = item.Artikel.Cena_brez_ddv * item.Kolicina;
+                    var cenaZDdv = cenaBrezDdv * (1 + item.Artikel.Vrsta.Davek / 100);
+
+                    skupajBrezDdv += cenaBrezDdv;
+                    skupajZDdv += cenaZDdv;
+                }
+
+                var novRacun = new Racun
+                {
+                    Datum = DateTime.Now,
+                    Skupaj_brez_ddv = skupajBrezDdv,
+                    Skupaj_z_ddv = skupajZDdv,
+                    Izdal_uporabnik_id = adminUser.Id,
+                    Status = "Zakljucen"
                 };
-                _context.IzdelekGreVn.Add(izdelekGreVn);
-            }
 
-            await _context.SaveChangesAsync();
+                _context.Racun.Add(novRacun);
+                await _context.SaveChangesAsync();
 
-            var response = new RacunOdgovorDto
-            {
-                Id = novRacun.ID,
-                Datum = novRacun.Datum,
-                SkupajBrezDdv = novRacun.Skupaj_brez_ddv,
-                SkupajZDdv = novRacun.Skupaj_z_ddv,
-                Status = novRacun.Status,
-                Artikli = artikliGrouped.Select(item => new RacuniIzdelkiDto
+                foreach (var item in artikliGrouped)
                 {
-                    ArtikelId = item.ArtikelId,
-                    Naziv = item.Artikel.Naziv,
-                    CenaBrezDdv = item.Artikel.Cena_brez_ddv,
-                    Kolicina = item.Kolicina,
-                    Skupaj = item.Artikel.Cena_brez_ddv * item.Kolicina
-                }).ToList()
-            };
+                    var izdelekGreVn = new IzdelekGreVn
+                    {
+                        Racun_id = novRacun.ID,
+                        Artikel_id = item.ArtikelId,
+                        Skladisce_id = barSkladisce.ID,
+                        Kolicina = item.Kolicina
+                    };
+                    _context.IzdelekGreVn.Add(izdelekGreVn);
+                }
 
-            return CreatedAtAction(nameof(GetRacun), new { id = novRacun.ID }, response);
-        }
+                await _context.SaveChangesAsync();
+
+                var response = new RacunOdgovorDto
+                {
+                    Id = novRacun.ID,
+                    Datum = novRacun.Datum,
+                    SkupajBrezDdv = novRacun.Skupaj_brez_ddv,
+                    SkupajZDdv = novRacun.Skupaj_z_ddv,
+                    Status = novRacun.Status,
+                    Artikli = artikliGrouped.Select(item => new RacuniIzdelkiDto
+                    {
+                        ArtikelId = item.ArtikelId,
+                        Naziv = item.Artikel.Naziv,
+                        CenaBrezDdv = item.Artikel.Cena_brez_ddv,
+                        Kolicina = item.Kolicina,
+                        Skupaj = item.Artikel.Cena_brez_ddv * item.Kolicina
+                    }).ToList()
+                };
+
+                return CreatedAtAction(nameof(GetRacun), new { id = novRacun.ID }, response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Napaka pri ustvarjanju računa: " + ex.Message });
+            }
+}
     }
 }
