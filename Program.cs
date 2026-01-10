@@ -20,7 +20,7 @@ builder.Services.AddDefaultIdentity<Uporabnik>(options =>
     options.Password.RequireLowercase = false;
     options.Password.RequireUppercase = false;
     options.Password.RequireNonAlphanumeric = false;
-    options.Password.RequiredLength = 1; // minimalno 1 znak
+    options.Password.RequiredLength = 1;
     options.Password.RequiredUniqueChars = 0;
 })
 .AddRoles<IdentityRole>()
@@ -28,7 +28,6 @@ builder.Services.AddDefaultIdentity<Uporabnik>(options =>
 
     
 builder.Services.AddSession();
-// Add services to the container.
 builder.Services.AddControllersWithViews();
 
 builder.Services.AddEndpointsApiExplorer();
@@ -51,7 +50,6 @@ using (var scope = app.Services.CreateScope())
 }
 
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");

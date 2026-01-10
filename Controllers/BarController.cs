@@ -48,13 +48,11 @@ namespace E_Gostinc.Controllers
                 var dobavniArtikel = _context.DobavniArtikel.Find(dobavniArtikelId);
                 if (dobavniArtikel == null) continue;
 
-                // Zaloga v glavnem skladišču
                 var skladisceZaloga = _context.DobavaVSkladisce
                     .Where(d => d.Skladisce_id == glavnoSkladisce.ID &&
                                 d.DobavniArtikel_Id == dobavniArtikelId)
                     .Sum(d => (int?)d.Kolicina) ?? 0;
 
-                // Zaloga v baru
                 var zalogaVBaru = _context.DobavaVSkladisce
                     .Where(d => d.Skladisce_id == barSkladisce.ID &&
                                 d.DobavniArtikel_Id == dobavniArtikelId)
@@ -86,7 +84,6 @@ namespace E_Gostinc.Controllers
             return View(zaloge);
         }
 
-        // Odstrani enoto iz bara
         [HttpPost]
         public IActionResult OdstraniIzBara(int dobavniArtikelId)
         {
@@ -118,7 +115,6 @@ namespace E_Gostinc.Controllers
                     return RedirectToAction("Login", "Account");
                 }
 
-                // Ustvari dobavo
                 var dobava = new Dobava
                 {
                     Datum = DateTime.Now,
@@ -127,7 +123,6 @@ namespace E_Gostinc.Controllers
                 _context.Dobava.Add(dobava);
                 _context.SaveChanges();
 
-                // Odstrani 1 enoto iz bara
                 _context.DobavaVSkladisce.Add(new DobavaVSkladisce
                 {
                     Kolicina = -1,
@@ -150,7 +145,6 @@ namespace E_Gostinc.Controllers
             }
         }
 
-        // Dodaj enoto v bar (iz skladišča)
         [HttpPost]
         public IActionResult DodajVBar(int dobavniArtikelId)
         {
@@ -191,7 +185,6 @@ namespace E_Gostinc.Controllers
                 _context.Dobava.Add(dobava);
                 _context.SaveChanges();
 
-                // Odvzemi iz skladišča
                 _context.DobavaVSkladisce.Add(new DobavaVSkladisce
                 {
                     Kolicina = -1,
@@ -200,7 +193,6 @@ namespace E_Gostinc.Controllers
                     DobavniArtikel_Id = dobavniArtikelId
                 });
 
-                // Dodaj v bar
                 _context.DobavaVSkladisce.Add(new DobavaVSkladisce
                 {
                     Kolicina = 1,

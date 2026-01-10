@@ -16,14 +16,12 @@ namespace E_Gostinc.Controllers.Api
             _context = context;
         }
 
-        // GET: api/v1/skladisce
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Skladisce>>> GetSkladisca()
         {
             return await _context.Skladisce.ToListAsync();
         }
 
-        // GET: api/v1/skladisce/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Skladisce>> GetSkladisce(int id)
         {
@@ -37,7 +35,6 @@ namespace E_Gostinc.Controllers.Api
             return skladisce;
         }
 
-        // GET: api/v1/skladisce/5/zaloga
         [HttpGet("{id}/zaloga")]
         public async Task<ActionResult<object>> GetZaloga(int id)
         {
@@ -73,7 +70,6 @@ namespace E_Gostinc.Controllers.Api
             });
         }
 
-        // POST: api/v1/skladisce
         [HttpPost]
         public async Task<ActionResult<Skladisce>> PostSkladisce(Skladisce skladisce)
         {
@@ -83,7 +79,6 @@ namespace E_Gostinc.Controllers.Api
             return CreatedAtAction(nameof(GetSkladisce), new { id = skladisce.ID }, skladisce);
         }
 
-        // PUT: api/v1/skladisce/5
         [HttpPut("{id}")]
         public async Task<IActionResult> PutSkladisce(int id, Skladisce skladisce)
         {
@@ -113,7 +108,6 @@ namespace E_Gostinc.Controllers.Api
             return NoContent();
         }
 
-        // DELETE: api/v1/skladisce/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteSkladisce(int id)
         {

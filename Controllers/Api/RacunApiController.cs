@@ -19,7 +19,6 @@ namespace E_Gostinc.Controllers.Api
             _context = context;
         }
 
-        // GET: api/v1/racun/dnevni
         [HttpGet("dnevni")]
         [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<RacunDto>>> GetDnevniRacuni()
@@ -44,7 +43,6 @@ namespace E_Gostinc.Controllers.Api
             return Ok(racuni);
         }
 
-        // GET: api/v1/racun/{id}
         [HttpGet("{id}")]
         [AllowAnonymous]
         public async Task<ActionResult<RacunOdgovorDto>> GetRacun(int id)
