@@ -53,11 +53,12 @@ namespace E_Gostinc.Controllers.Api
                 .Include(r => r.IzdelekiGrejoVn)
                     .ThenInclude(i => i.Artikel)
                         .ThenInclude(a => a.Vrsta)
+                .Include(r => r.Uporabnik)
                 .FirstOrDefaultAsync(r => r.ID == id);
 
             if (racun == null)
             {
-                return NotFound();
+                return NotFound(new { error = "Račun ne obstaja" });
             }
 
             var response = new RacunOdgovorDto
@@ -67,8 +68,9 @@ namespace E_Gostinc.Controllers.Api
                 SkupajBrezDdv = racun.Skupaj_brez_ddv,
                 SkupajZDdv = racun.Skupaj_z_ddv,
                 Status = racun.Status,
+                UporabnikEmail = racun.Uporabnik?.UserName ?? "N/A",
                 Artikli = racun.IzdelekiGrejoVn
-                    .GroupBy(i => new { i.Artikel_id, i.Artikel.Naziv, i.Artikel.Cena_brez_ddv })
+                    .GroupBy(i => new { i.Artikel_id, i.Artikel.Naziv, i.Artikel.Cena_brez_ddv, i.Artikel.Vrsta.Davek })
                     .Select(g => new RacuniIzdelkiDto
                     {
                         ArtikelId = g.Key.Artikel_id,
@@ -81,8 +83,43 @@ namespace E_Gostinc.Controllers.Api
             };
 
             return Ok(response);
-        }
+}
 
+        [HttpDelete("{id}/storniraj")]
+        [AllowAnonymous]
+        public async Task<ActionResult> StornirajRacun(int id)
+        {
+            try
+            {
+                var racun = await _context.Racun
+                    .Include(r => r.IzdelekiGrejoVn)
+                    .FirstOrDefaultAsync(r => r.ID == id);
+
+                if (racun == null)
+                {
+                    return NotFound(new { error = "Račun ne obstaja" });
+                }
+
+                if (racun.Status == "Storniran")
+                {
+                    return BadRequest(new { error = "Račun je že storniran" });
+                }
+
+                racun.Status = "Storniran";
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new { 
+                    message = "Račun uspešno storniran",
+                    racunId = id,
+                    status = racun.Status
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Napaka pri storniranju: " + ex.Message });
+            }
+}
 
         [HttpPost]
         [AllowAnonymous] 

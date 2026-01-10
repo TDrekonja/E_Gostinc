@@ -22,6 +22,7 @@ namespace E_Gostinc.Models.DTOs
         public decimal SkupajBrezDdv { get; set; }
         public decimal SkupajZDdv { get; set; }
         public string Status { get; set; }
+        public string UporabnikEmail { get; set; }
         public List<RacuniIzdelkiDto> Artikli { get; set; }
     }
 }
