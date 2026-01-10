@@ -1,0 +1,130 @@
+@model E_Gostinc.Models.ZalogaFilterViewModel
+@{
+    ViewData["Title"] = "Pregled zalog";
+}
+
+<div class="container-fluid mt-4">
+    <h2 class="mb-4">Pregled zalog v skladiščih</h2>
+
+   
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" asp-action="Index" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Skladišče:</label>
+                    <select name="skladisceId" class="form-select" onchange="this.form.submit()">
+                        <option value="">Vsa skladišča (skupaj)</option>
+                        @foreach (var skladisce in Model.Skladisca)
+                        {
+                            @if (Model.IzbranaSkladisceId == skladisce.ID)
+                            {
+                                <option value="@skladisce.ID" selected>@skladisce.Naziv</option>
+                            }
+                            else
+                            {
+                                <option value="@skladisce.ID">@skladisce.Naziv</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Razvrsti po:</label>
+                    <select name="sortBy" class="form-select" onchange="this.form.submit()">
+                        @if (Model.Sortiranje == "naziv")
+                        {
+                            <option value="naziv" selected>Naziv artikla</option>
+                        }
+                        else
+                        {
+                            <option value="naziv">Naziv artikla</option>
+                        }
+                        
+                        @if (Model.Sortiranje == "zaloga")
+                        {
+                            <option value="zaloga" selected>Količina</option>
+                        }
+                        else
+                        {
+                            <option value="zaloga">Količina</option>
+                        }
+                        
+                        @if (Model.Sortiranje == "vrsta")
+                        {
+                            <option value="vrsta" selected>Vrsta izdelka</option>
+                        }
+                        else
+                        {
+                            <option value="vrsta">Vrsta izdelka</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Vrstni red:</label>
+                    <select name="order" class="form-select" onchange="this.form.submit()">
+                        @if (Model.VrstniRed == "asc")
+                        {
+                            <option value="asc" selected>Naraščajoče ↑</option>
+                        }
+                        else
+                        {
+                            <option value="asc">Naraščajoče ↑</option>
+                        }
+                        
+                        @if (Model.VrstniRed == "desc")
+                        {
+                            <option value="desc" selected>Padajoče ↓</option>
+                        }
+                        else
+                        {
+                            <option value="desc">Padajoče ↓</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-2 d-flex align-items-end">
+                    <a asp-action="Index" class="btn btn-secondary w-100">Ponastavi</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            @if (Model.IzbranaSkladisceId == null)
+                            {
+                                <th>Skladišče</th>
+                            }
+                            <th>Artikel</th>
+                            <th>Vrsta</th>
+                            <th>Enota</th>
+                            <th class="text-end">Zaloga</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var zaloga in Model.Zaloge)
+                    {
+                        <tr>
+                            @if (Model.IzbranaSkladisceId == null)
+                            {
+                                <td><strong>@(zaloga.Skladisce ?? "Skupaj")</strong></td>
+                            }
+                            <td>@zaloga.Artikel</td>
+                            <td><span class="badge bg-secondary">@zaloga.Vrsta</span></td>
+                            <td>@zaloga.Enota</td>
+                            <td class="text-end">
+                                <strong>@zaloga.Zaloga</strong>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

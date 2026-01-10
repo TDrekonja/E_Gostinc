@@ -1,0 +1,106 @@
+@model List<E_Gostinc.Models.BarZalogaViewModel>
+@{
+    ViewData["Title"] = "Zaloga za bar";
+}
+
+<div class="container-fluid mt-4">
+    <h2 class="mb-4">Zaloga artiklov za bar</h2>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+            <strong>Napaka!</strong> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+            <strong>Uspeh!</strong> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th style="width: 35%;">Artikel</th>
+                            <th style="width: 25%;">Uporablja se za</th>
+                            <th class="text-center" style="width: 15%;">V baru</th>
+                            <th class="text-center" style="width: 15%;">V skladišču</th>
+                            <th class="text-center" style="width: 10%;">Akcije</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var zaloga in Model.OrderBy(z => z.DobavniArtikelNaziv))
+                    {
+                        <tr>
+                            <td>
+                                <strong>@zaloga.DobavniArtikelNaziv</strong>
+                                <br />
+                                <small class="text-muted">@zaloga.DobavniArtikelEnota</small>
+                            </td>
+                            <td>
+                                @if (zaloga.PovezaniArtikli.Any())
+                                {
+                                    <ul class="list-unstyled mb-0">
+                                        @foreach (var povezan in zaloga.PovezaniArtikli)
+                                        {
+                                            <li><small>• @povezan.Naziv</small></li>
+                                        }
+                                    </ul>
+                                }
+                            </td>
+                            <td class="text-center align-middle">
+                                <h4 class="mb-0">
+                                    @if (zaloga.ZalogaVBaru == 0)
+                                    {
+                                        <span class="text-danger">0</span>
+                                    }
+                                    else if (zaloga.ZalogaVBaru <= 2)
+                                    {
+                                        <span class="text-warning">@zaloga.ZalogaVBaru</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-success">@zaloga.ZalogaVBaru</span>
+                                    }
+                                </h4>
+                            </td>
+                            <td class="text-center align-middle">
+                                <h4 class="mb-0">
+                                    <span class="text-info">@zaloga.ZalogaVSkladiscu</span>
+                                </h4>
+                            </td>
+                            <td class="text-center align-middle">
+                                <!--<form asp-action="DodajVBar" method="post" class="d-inline">
+                                    <input type="hidden" name="dobavniArtikelId" value="@zaloga.DobavniArtikelId" />
+                                    <button type="submit" 
+                                            class="btn btn-sm btn-success" 
+                                            title="Dodaj v bar"
+                                            @(zaloga.ZalogaVSkladiscu <= 0 ? "disabled" : "")>
+                                        <i class="bi bi-plus-circle"></i>
+                                    </button>
+                                </form>-->
+                                
+                                <form asp-action="OdstraniIzBara" method="post" class="d-inline">
+                                    <input type="hidden" name="dobavniArtikelId" value="@zaloga.DobavniArtikelId" />
+                                    <button type="submit" 
+                                            class="btn btn-sm btn-danger" 
+                                            title="Odstrani iz bara"
+                                            @(zaloga.ZalogaVBaru <= 0 ? "disabled" : "")>
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,55 @@
+@model List<E_Gostinc.Models.ZamenjajBucViewModel>
+@{
+    ViewData["Title"] = "Zamenjaj buč/steklenico";
+}
+
+<div class="container mt-4">
+    <h2 class="mb-4">Zamenjaj buč/steklenico iz skladišča v bar</h2>
+
+    <div class="row">
+        @foreach (var artikel in Model)
+        {
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">@artikel.DobavniArtikelNaziv</h5>
+                        <p class="text-muted mb-3">
+                            Na zalogi v skladišču: <strong>@artikel.SkladisceZaloga</strong>
+                        </p>
+                        
+                        <form asp-action="IzvrsiZamenjavo" method="post">
+                            <input type="hidden" name="dobavniArtikelId" value="@artikel.DobavniArtikelId" />
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Količina za zamenjavo:</label>
+                                <input type="number" 
+                                       name="kolicina" 
+                                       class="form-control" 
+                                       min="1" 
+                                       max="@artikel.SkladisceZaloga"
+                                       value="1" 
+                                       required />
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-arrow-right"></i> Zamenjaj
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i> 
+            Ni artiklov za zamenjavo. Preverite zalogo v glavnem skladišču.
+        </div>
+    }
+
+    <a asp-action="Zaloga" class="btn btn-secondary mt-3">
+        <i class="bi bi-arrow-left"></i> Nazaj na zalogo
+    </a>
+</div>
