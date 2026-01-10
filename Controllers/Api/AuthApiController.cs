@@ -28,7 +28,6 @@ namespace E_Gostinc.Controllers.Api
                 return BadRequest(new { error = "Uporabniško ime in geslo sta obvezna" });
             }
 
-            // ✅ Najdi uporabnika po USERNAME
             var user = await _userManager.FindByNameAsync(request.Username);
             if (user == null)
             {
@@ -41,7 +40,6 @@ namespace E_Gostinc.Controllers.Api
                 return Unauthorized(new { error = "Napačno uporabniško ime ali geslo" });
             }
 
-            // Get user role
             var roles = await _userManager.GetRolesAsync(user);
             var role = roles.FirstOrDefault() ?? "User";
 

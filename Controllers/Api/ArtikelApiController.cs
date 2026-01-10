@@ -19,7 +19,6 @@ namespace E_Gostinc.Controllers.Api
             _context = context;
         }
 
-        // ✅ Vrni DTO namesto entitete
         [HttpGet]
         [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<ArtikelDto>>> GetArtikli()
@@ -66,7 +65,6 @@ namespace E_Gostinc.Controllers.Api
             return artikel;
         }
 
-        // POST, PUT, DELETE ostanejo enaki (sprejemajo Artikel entiteto)
         [HttpPost]
         public async Task<ActionResult<Artikel>> PostArtikel(Artikel artikel)
         {
@@ -76,6 +74,5 @@ namespace E_Gostinc.Controllers.Api
             return CreatedAtAction(nameof(GetArtikel), new { id = artikel.ID }, artikel);
         }
 
-        // ... ostale metode
     }
 }

@@ -56,7 +56,6 @@ public class SkladisceController : Controller
             })
             .ToList();
 
-        // Sortiranje
         zaloge = sortBy.ToLower() switch
         {
             "naziv" => order == "desc"
@@ -227,7 +226,6 @@ public class SkladisceController : Controller
     [ValidateAntiForgeryToken]
     public IActionResult IzvrsiPrenos(int izSkladiscaId, int vSkladisceId, List<int> izbraniArtikli, List<int> kolicine)
     {
-        // DODAJ DEBUGGING
         Console.WriteLine($"=== PRENOS DEBUG ===");
         Console.WriteLine($"izSkladiscaId: {izSkladiscaId}");
         Console.WriteLine($"vSkladisceId: {vSkladisceId}");
@@ -243,7 +241,6 @@ public class SkladisceController : Controller
             Console.WriteLine($"Kolicine: {string.Join(", ", kolicine)}");
         }
 
-        // Validacije
         if (izSkladiscaId == vSkladisceId)
         {
             TempData["Error"] = "Ne morete prenesti v isto skladišče!";
@@ -262,7 +259,6 @@ public class SkladisceController : Controller
             return RedirectToAction("IzberiArtikle", new { izSkladiscaId });
         }
 
-        // Pridobi uporabnika
         var uporabnikId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(uporabnikId))
         {
@@ -281,7 +277,6 @@ public class SkladisceController : Controller
 
                 if (kolicina <= 0) continue;
 
-                // Preveri zalogo
                 var trenutnaZaloga = _context.DobavaVSkladisce
                     .Where(d => d.Skladisce_id == izSkladiscaId && d.DobavniArtikel_Id == artikelId)
                     .Sum(d => d.Kolicina);
@@ -293,7 +288,6 @@ public class SkladisceController : Controller
                     return RedirectToAction("IzberiArtikle", new { izSkladiscaId });
                 }
 
-                // Ustvari novo dobavo
                 var novaDobava = new Dobava
                 {
                     Datum = trenutniDatum,
@@ -302,7 +296,6 @@ public class SkladisceController : Controller
                 _context.Dobava.Add(novaDobava);
                 _context.SaveChanges();
 
-                // Dodaj v ciljno skladišče
                 _context.DobavaVSkladisce.Add(new DobavaVSkladisce
                 {
                     Kolicina = kolicina,
@@ -311,7 +304,6 @@ public class SkladisceController : Controller
                     DobavniArtikel_Id = artikelId
                 });
 
-                // Odvzemi iz izvornega skladišča
                 _context.DobavaVSkladisce.Add(new DobavaVSkladisce
                 {
                     Kolicina = -kolicina,
@@ -320,7 +312,6 @@ public class SkladisceController : Controller
                     DobavniArtikel_Id = artikelId
                 });
 
-                // Evidentiraj prenos
                 _context.PrenosMedSkladisci.Add(new PrenosMedSkladisci
                 {
                     Datum = trenutniDatum,
@@ -346,7 +337,6 @@ public class SkladisceController : Controller
         }
     }
 
-    // GET: Zgodovina prenosov
     public IActionResult ZgodovinaPrenosov()
     {
         var prenosi = _context.PrenosMedSkladisci
